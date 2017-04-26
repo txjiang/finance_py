@@ -100,12 +100,49 @@ class finance_basic_info:
         kurtret = dailyret.kurtosis()
         covret = dailyret.cov()
         return  dailyret, meanret, stdret, covret, kurtret, sharperatio
+
+class portfolio_optimizer:
     '''__________________________________________________________________________________________________________'''
     "________________________________________________Optimizer____________________________________________________"
+    def __init__(self, ret, cov, risk_free = 1/100):
+        self.ret = ret
+        self.cov = cov
+        self.risk_free = risk_free
+
+    def hessian_matrix_adjust(self):
+
+    def min_variance(self):
+
+    def max_ret(self):
+
+    def mean_variance(self):
+
+    def max_sharpe(self):
+
+    def robust_mean_variance(self):
+
+    def equal_risk(self):
+
+    def buy_hold(self):
+
+    def equal_weight(self):
 
 
-
+class price_predictor_adjuster: ###black-litterman
     '''___________________________________________________________________________________________________________'''
     '''____________________________________________Machine Learning_________________________________________________'''
+
+    def __init__(self):
+
+    def black_litterman(self):
+
+
+class option_price:
+
+
+class trading_alg:
+
+
+class risk_sim:
 
 
