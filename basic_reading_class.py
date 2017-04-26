@@ -99,7 +99,7 @@ class finance_basic_info:
         stdret = dailyret.std()
         kurtret = dailyret.kurtosis()
         covret = dailyret.cov()
-        return  dailyret, meanret, stdret, covret, kurtret, sharperatio
+        return dailyret, meanret, stdret, covret, kurtret, sharperatio
 
 class portfolio_optimizer:
     '''__________________________________________________________________________________________________________'''
@@ -108,8 +108,11 @@ class portfolio_optimizer:
         self.ret = ret
         self.cov = cov
         self.cov_shape = cov.shape[0]
-        cov_eig = np.linalg.eig(self.cov)
-        if all(cov_eig) >= 0:
+        #print (self.cov)
+        cov_eig = np.linalg.eig(self.cov)[0]
+        #print (cov_eig)
+        #print (cov_eig > 0)
+        if ((cov_eig >= 0).sum() == cov_eig.size).astype(np.int) == 1:
             print("The covariance matrix is at least PSD")
             pass
         else:
@@ -122,8 +125,9 @@ class portfolio_optimizer:
 
     def hessian_matrix_adjust(self, method = "small_per"):
         #check if hession is psd
-        cov_eig = np.linalg.eig(self.cov)
-        if all(cov_eig) >= 0:
+        cov_eig = np.linalg.eig(self.cov)[0]
+        #print (cov_eig)
+        if ((cov_eig >= 0).sum() == cov_eig.size).astype(np.int) == 1:
             print("The covariance matrix is at least PSD")
             cov_new = self.cov
         else:
@@ -202,11 +206,7 @@ class portfolio_optimizer:
 
         return ret_list, var_list, res_list
 
-
-
-
-
-    def max_sharpe(self):
+'''    def max_sharpe(self):
 
     def robust_mean_variance(self):
 
@@ -218,8 +218,9 @@ class portfolio_optimizer:
 
 
 class price_predictor_adjuster: ###black-litterman
-    '''___________________________________________________________________________________________________________'''
-    '''____________________________________________Machine Learning_________________________________________________'''
+    #'''#___________________________________________________________________________________________________________'''
+    #____________________________________________Machine Learning_________________________________________________#
+'''
 
     def __init__(self):
 
@@ -232,6 +233,6 @@ class option_price:
 class trading_alg:
 
 
-class risk_sim:
+class risk_sim:'''
 
 

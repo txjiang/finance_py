@@ -1,13 +1,19 @@
 from basic_reading_class import finance_basic_info
+from basic_reading_class import portfolio_optimizer
+import numpy as np
 
+# Test FBI
 company_list = ['AMD', 'BAC', 'GOOG', 'MSFT', 'TXN']
 fbi = finance_basic_info(company_list=company_list)
-#fbi.pullData(length = '1y')
 start_date = '2016-10-02'
 end_date = '2017-01-09'
 rowdata = fbi.get_data(start_date = start_date, end_date = end_date)
-#print (rowdata)
-rm, _, _, _ = fbi.rolling_stats(rowdata)
-dr, _, std, cov, _, sharperatio = fbi.dailyret_stats(rowdata)
-print(cov)
+daily_ret, mean_ret, std, cov, kurtret, sharperatio = fbi.dailyret_stats(rowdata)
+
+# Test po
+cov_test = np.array([[1, 0.3, 0.5], [0.3, 1, -0.8], [0.5, -0.8, 1]])
+ret_test = np.array([0.01, -0.002, 0.009])
+po = portfolio_optimizer(ret = ret_test, cov=cov_test)
+x = po.hessian_matrix_adjust()
+print(x)
 
