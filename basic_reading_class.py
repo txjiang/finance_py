@@ -107,11 +107,56 @@ class portfolio_optimizer:
     def __init__(self, ret, cov, risk_free = 1/100):
         self.ret = ret
         self.cov = cov
+        self.cov_shape = cov.shape[0]
+        cov_eig = np.linalg.eig(self.cov)
+        if all(cov_eig) >= 0:
+            print("The covariance matrix is at least PSD")
+            pass
+        else:
+            print("The covariance matrix is not a PSD, and adjusted")
+            smallest_eig = min(cov_eig)
+            cov_new = self.cov - smallest_eig*np.identity(self.cov_shape)
+            self.cov = cov_new/cov_new[0,0]
         self.risk_free = risk_free
+        self.num_asset = self.cov_shape
 
-    def hessian_matrix_adjust(self):
+    def hessian_matrix_adjust(self, method = "small_per"):
+        #check if hession is psd
+        cov_eig = np.linalg.eig(self.cov)
+        if all(cov_eig) >= 0:
+            print("The covariance matrix is at least PSD")
+            cov_new = self.cov
+        else:
+            if method == "small_per":
+                smallest_eig = min(cov_eig)
+                cov_new = self.cov - smallest_eig*np.identity(self.cov_shape)
+                cov_new = cov_new/cov_new[0,0]
+            elif method == "zero_eig":
+                w, v = np.linalg.eig(self.cov)
+                w [w < 0] = 0
+                d = np.diag(w)
+                cov_new = np.dot(np.dot(v, d), v.T)
+                cov_new = cov_new/cov_new[0,0]
+            elif method == "rank_1_update":
+                w, v = np.linalg.eig(self.cov)
+                la = min(w)
+                d = np.diag(w)
+                Q = np.dot(v, v.T)
+                cov_new = self.cov - la*Q
+                cov_new = cov_new/cov_new[0,0]
+        return cov_new
 
-    def min_variance(self):
+    def min_variance(self, method = 'SLSQP'):
+
+        local_cov = self.cov
+        def obj_fun(x):
+            obj = np.dot(np.dot(x.T, local_cov), x)
+            return obj
+
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1})
+        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))
+        res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
+        return res
 
     def max_ret(self):
 
