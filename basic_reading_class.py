@@ -158,9 +158,53 @@ class portfolio_optimizer:
         res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
         return res
 
-    def max_ret(self):
+    def max_ret(self, method = 'SLSQP'):
 
-    def mean_variance(self):
+        local_ret = self.ret
+        def obj_fun(x):
+            obj = np.dot(local_ret.T, x)
+            return obj
+
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1})
+        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))(np.zeros(self.num_asset), np.ones(self.num_asset))
+        res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
+        return res
+
+    def mean_variance(self, method = 'SLSQP', plot_eff_front = False):
+        min_var_x = self.min_variance()
+        min_var_ret = np.dot(min_var_x.T, self.ret)
+        max_ret_x = self.max_ret()
+        max_ret_ret = np.dot(max_ret_x.T, self.ret)
+        target_ret = np.linspace(min_var_ret, max_ret_ret, num=50)
+        local_cov = self.cov
+        local_ret = self.ret
+
+        def obj_fun(x):
+            obj = np.dot(np.dot(x.T, local_cov), x)
+            return obj
+
+        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))
+        ret_list = []
+        var_list = []
+        res_list = []
+        for item in target_ret:
+            cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1},
+                    {'type': 'ineq', 'fun': lambda x: item - np.dot(local_ret.T, x)})
+            res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
+            res_list.append(res)
+            ret_list.append(local_ret.T.dot(res))
+            var_list.append(np.dot(np.dot(res.T, local_cov), res))
+
+        if plot_eff_front == True:
+            plt.figure()
+            plt.plot(var_list, ret_list)
+            plt.show()
+
+        return ret_list, var_list, res_list
+
+
+
+
 
     def max_sharpe(self):
 
