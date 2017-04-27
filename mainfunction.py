@@ -11,9 +11,13 @@ rowdata = fbi.get_data(start_date = start_date, end_date = end_date)
 daily_ret, mean_ret, std, cov, kurtret, sharperatio = fbi.dailyret_stats(rowdata)
 
 # Test po
-cov_test = np.array([[1, 0.3, 0.5], [0.3, 1, -0.8], [0.5, -0.8, 1]])
-ret_test = np.array([0.01, -0.002, 0.009])
-po = portfolio_optimizer(ret = ret_test, cov=cov_test)
-x = po.hessian_matrix_adjust()
-print(x)
+#cov_test = np.array([[1, 0.3, 0.5], [0.3, 1, -0.8], [0.5, -0.8, 1]])
+#ret_test = np.array([0.01, -0.002, 0.009])
+po = portfolio_optimizer(ret = mean_ret, cov=cov)
+#x = po.hessian_matrix_adjust(cov = cov)
+#res = po.min_variance(method='SLSQP')
+res = po.mean_variance(plot_eff_front=True)
+#res = po.max_ret()
+print (res[0])
+#print(x)
 

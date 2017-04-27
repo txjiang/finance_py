@@ -122,63 +122,66 @@ class portfolio_optimizer:
             self.cov = cov_new/cov_new[0,0]
         self.risk_free = risk_free
         self.num_asset = self.cov_shape
-
-    def hessian_matrix_adjust(self, method = "small_per"):
+    #checked
+    def hessian_matrix_adjust(self, cov, method = "small_per"):
         #check if hession is psd
-        cov_eig = np.linalg.eig(self.cov)[0]
+        cov_eig = np.linalg.eig(cov)[0]
+        cov_shape = cov.shape[0]
         #print (cov_eig)
         if ((cov_eig >= 0).sum() == cov_eig.size).astype(np.int) == 1:
             print("The covariance matrix is at least PSD")
-            cov_new = self.cov
+            cov_new = cov
         else:
             if method == "small_per":
                 smallest_eig = min(cov_eig)
-                cov_new = self.cov - smallest_eig*np.identity(self.cov_shape)
+                cov_new = cov - smallest_eig*np.identity(cov_shape)
                 cov_new = cov_new/cov_new[0,0]
             elif method == "zero_eig":
-                w, v = np.linalg.eig(self.cov)
+                w, v = np.linalg.eig(cov)
                 w [w < 0] = 0
                 d = np.diag(w)
                 cov_new = np.dot(np.dot(v, d), v.T)
                 cov_new = cov_new/cov_new[0,0]
             elif method == "rank_1_update":
-                w, v = np.linalg.eig(self.cov)
+                w, v = np.linalg.eig(cov)
                 la = min(w)
                 d = np.diag(w)
                 Q = np.dot(v, v.T)
-                cov_new = self.cov - la*Q
+                cov_new = cov - la*Q
                 cov_new = cov_new/cov_new[0,0]
         return cov_new
-
+    #checked
     def min_variance(self, method = 'SLSQP'):
 
+        #print (np.zeros((self.num_asset, 1)))
         local_cov = self.cov
         def obj_fun(x):
             obj = np.dot(np.dot(x.T, local_cov), x)
             return obj
 
-        cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1})
-        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))
-        res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones((1, self.num_asset)).dot(x) - 1})
+        bnd = [(0, None)]*self.num_asset
+        res = spo.minimize(obj_fun, np.zeros((self.num_asset, 1)), method=method, bounds=bnd, constraints=cons, tol=1e-10)
         return res
-
+    #checked
     def max_ret(self, method = 'SLSQP'):
 
         local_ret = self.ret
+        #print (local_ret)
         def obj_fun(x):
-            obj = np.dot(local_ret.T, x)
+            obj = -np.dot(local_ret.T, x)
             return obj
 
-        cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1})
-        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))(np.zeros(self.num_asset), np.ones(self.num_asset))
-        res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones((1, self.num_asset)).dot(x) - 1})
+        bnd = [(0, None)]*self.num_asset
+        res = spo.minimize(obj_fun, np.zeros((self.num_asset, 1)), method=method, bounds=bnd, constraints=cons, tol=1e-10)
         return res
-
+    #checked
     def mean_variance(self, method = 'SLSQP', plot_eff_front = False):
-        min_var_x = self.min_variance()
-        min_var_ret = np.dot(min_var_x.T, self.ret)
-        max_ret_x = self.max_ret()
-        max_ret_ret = np.dot(max_ret_x.T, self.ret)
+        min_var_x = self.min_variance().x.T
+        min_var_ret = np.dot(self.ret.T, min_var_x)
+        max_ret_x = self.max_ret().x.T
+        max_ret_ret = np.dot(self.ret.T, max_ret_x)
         target_ret = np.linspace(min_var_ret, max_ret_ret, num=50)
         local_cov = self.cov
         local_ret = self.ret
@@ -187,21 +190,22 @@ class portfolio_optimizer:
             obj = np.dot(np.dot(x.T, local_cov), x)
             return obj
 
-        bnd = (np.zeros(self.num_asset), np.ones(self.num_asset))
+        bnd = [(0, None)] * self.num_asset
         ret_list = []
         var_list = []
         res_list = []
         for item in target_ret:
-            cons = ({'type': 'eq', 'fun': lambda x: np.ones(self.num_asset).dot(x) - 1},
-                    {'type': 'ineq', 'fun': lambda x: item - np.dot(local_ret.T, x)})
-            res = spo.minimize(obj_fun, np.zeros(self.num_asset), method=method, bounds=bnd, constraints=cons)
-            res_list.append(res)
-            ret_list.append(local_ret.T.dot(res))
-            var_list.append(np.dot(np.dot(res.T, local_cov), res))
+            #print (item)
+            cons = ({'type': 'eq', 'fun': lambda x: np.ones((1, self.num_asset)).dot(x) - 1},
+                    {'type': 'ineq', 'fun': lambda x: -item + np.dot(local_ret.T, x)})
+            res = spo.minimize(obj_fun, np.zeros((self.num_asset, 1)), method=method, bounds=bnd, constraints=cons, tol=1e-10)
+            res_list.append(res.x)
+            ret_list.append(local_ret.T.dot(res.x.T))
+            var_list.append(np.dot(np.dot(res.x, local_cov), res.x.T))
 
         if plot_eff_front == True:
             plt.figure()
-            plt.plot(var_list, ret_list)
+            plt.plot(var_list[:-1], ret_list[:-1])
             plt.show()
 
         return ret_list, var_list, res_list
