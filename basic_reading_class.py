@@ -6,6 +6,7 @@ import urllib.request
 import time
 import os
 import csv
+import numpy.matlib
 
 class finance_basic_info:
     """______________________________________________________________________________________________________________"""
@@ -253,18 +254,36 @@ class portfolio_optimizer:
             max_sharpe_index = np.argmax(sharperatio)
             max_sharpe = np.amax(sharperatio)
             opt_weight = res_list[max_sharpe_index]
-            return opt_weight
+            return opt_weight, max_sharpe_index
+    # checked
+    def equal_risk(self, method = "SLSQP"):
+        local_Q = self.cov
+        num_asset = self.num_asset
+        def obj_fun(x):
+            #print (np.dot(local_Q,x))
+            term1 = x*local_Q.dot(x)
+            term1 = term1.reshape(5,1)
+            term1 = numpy.matlib.repmat(term1, 1, num_asset)
+            term2 = x*local_Q.dot(x)
+            term2 = term2.reshape(1,5)
+            term2 = numpy.matlib.repmat(term2, num_asset, 1)
+            f = np.sum(np.sum(np.power((term1 - term2), 2)))
+            return f
 
-'''    def robust_mean_variance(self):
-
-    def equal_risk(self):
-
-    def buy_hold(self):
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones((1, self.num_asset)).dot(x) - 1})
+        bnd = [(0, None)]*self.num_asset
+        res = spo.minimize(obj_fun, np.random.normal(loc=0.0, scale=1.0, size=(self.num_asset, 1)), method=method,
+                           bounds=bnd, constraints=cons, tol=1e-15)
+        risk = res.x*local_Q.dot(res.x)/np.sqrt(np.dot(np.dot(res.x, local_Q), res.x))
+        return res.x, risk
 
     def equal_weight(self):
+        res = (1/self.num_asset)*np.ones(self.num_asset)
+        return res
 
+    # def robust_mean_variance(self)
 
-class price_predictor_adjuster: ###black-litterman
+'''class price_predictor_adjuster: ###black-litterman
     #'''#___________________________________________________________________________________________________________'''
     #____________________________________________Machine Learning_________________________________________________#
 '''
