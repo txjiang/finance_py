@@ -16,8 +16,9 @@ daily_ret, mean_ret, std, cov, kurtret, sharperatio = fbi.dailyret_stats(rowdata
 po = portfolio_optimizer(ret = mean_ret, cov=cov)
 #x = po.hessian_matrix_adjust(cov = cov)
 #res = po.min_variance(method='SLSQP')
-res = po.mean_variance(plot_eff_front=True)
+#res = po.mean_variance(plot_eff_front=True)
 #res = po.max_ret()
-print (res[0])
+res = po.max_sharpe()
+print (res)
 #print(x)
 

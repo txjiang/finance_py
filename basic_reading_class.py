@@ -209,10 +209,53 @@ class portfolio_optimizer:
             plt.show()
 
         return ret_list, var_list, res_list
+    #checked
+    def max_sharpe(self, method = "SLSQP"):
+        if (self.ret >= self.risk_free/252).sum() > 0:
+            Q_temp_row = np.zeros((1, self.num_asset))
+            Q_temp_col = np.zeros((self.num_asset + 1, 1))
+            Q_new = np.hstack((np.vstack((self.cov, Q_temp_row)), Q_temp_col))
+            eq_con_A1 = np.append((self.ret - self.risk_free/252), [0], axis=0)
+            #print (eq_con_A1)
+            eq_con_A2 = np.append(np.ones(self.num_asset), [-1], axis=0)
+            #print (eq_con_A2)
+            #print (-1*np.identity(self.num_asset))
+            #ineq_con_A1 = np.hstack((-1*np.identity(self.num_asset), np.zeros((self.num_asset, 1))))
+            #print (ineq_con_A1)
+            #ineq_con_A2 = np.hstack((np.identity(self.num_asset), -1*np.ones((self.num_asset, 1))))
+            #print (Q_new)
 
-'''    def max_sharpe(self):
+            def obj_fun(x):
+                obj = np.dot(np.dot(x.T, Q_new), x)
+                return obj
 
-    def robust_mean_variance(self):
+            cons = ({'type': 'eq', 'fun': lambda x: eq_con_A1.dot(x) - 1},
+                    {'type': 'eq', 'fun': lambda x: eq_con_A2.dot(x)})
+
+            #for item in range(self.num_asset):
+                #print (ineq_con_A1[item, :])
+                #print (ineq_con_A2[item, :])
+                #tempcon1 = ({'type': 'ineq', 'fun': lambda x: x[item] - x[-1]},)
+                #tempcon1 = ({'type': 'ineq', 'fun': lambda x: ineq_con_A1[item, :].dot(x)},)
+                #cons = cons + tempcon1
+                #tempcon2 = ({'type': 'ineq', 'fun': lambda x: ineq_con_A2[item, :].dot(x)},)
+                #cons = cons + tempcon2
+            #print (cons)
+            bnd = [(0, None)] * (self.num_asset+1)
+            res = spo.minimize(obj_fun, np.random.uniform(low=0.0, high=100, size=(self.num_asset+1, 1)),
+                               method=method, bounds=bnd, constraints=cons, tol=1e-15)
+            opt_weight = res.x[:-1]/res.x[-1]
+            return opt_weight
+        else:
+            print ("All asset have lower returns than risk-free asset, max sharpe's ratio has no solution.")
+            ret_list, var_list, res_list = self.mean_variance()
+            sharperatio = (ret_list - self.risk_free/252) / np.sqrt(var_list)
+            max_sharpe_index = np.argmax(sharperatio)
+            max_sharpe = np.amax(sharperatio)
+            opt_weight = res_list[max_sharpe_index]
+            return opt_weight
+
+'''    def robust_mean_variance(self):
 
     def equal_risk(self):
 
