@@ -280,10 +280,39 @@ class portfolio_optimizer:
     def equal_weight(self):
         res = (1/self.num_asset)*np.ones(self.num_asset)
         return res
+    #checked
+    def rob_mean_variance(self, method = "SLSQP"):
+        local_Q = self.cov
+        local_ret = self.ret
+        num_asset = self.num_asset
+        # initial weight
+        w0 = np.ones((num_asset, 1))/num_asset
+        #ret_init = np.dot(local_ret.T, w0)
+        #var_init = np.dot(np.dot(w0.T, local_Q), w0)
 
-    # def robust_mean_variance(self)
+        # target return estimation error
+        var_matr = np.diag(np.diag(local_Q))
+        #print (w0)
+        rob_init = np.dot(np.dot(w0.T, var_matr), w0)
+        rob_init = rob_init[0]
+        port_ret = np.dot(local_ret.T, self.min_variance().x)
+        #print (port_ret)
 
-'''class price_predictor_adjuster: ###black-litterman
+        def obj_fun(x):
+            obj = np.dot(np.dot(x.T, local_Q), x)
+            return obj
+
+        cons = ({'type': 'eq', 'fun': lambda x: np.ones((1, self.num_asset)).dot(x) - 1},
+                {'type': 'ineq', 'fun': lambda x: -port_ret + np.dot(local_ret.T, x)},
+                {'type': 'ineq', 'fun': lambda x: np.dot(np.dot(x.T, var_matr), x) - rob_init})
+        bnd = [(0, None)]*self.num_asset
+        res = spo.minimize(obj_fun, np.random.uniform(low=0.0, high=1, size=(self.num_asset, 1)),
+                           method=method, bounds=bnd, constraints=cons, tol=1e-15)
+        return res
+
+'''class price_predictor_adjuster: 
+
+###black-litterman
     #'''#___________________________________________________________________________________________________________'''
     #____________________________________________Machine Learning_________________________________________________#
 '''
