@@ -310,18 +310,48 @@ class portfolio_optimizer:
                            method=method, bounds=bnd, constraints=cons, tol=1e-15)
         return res
 
-'''class price_predictor_adjuster: 
+class price_predictor_adjuster:
+    '''___________________________________________________________________________________________________________'''
+    '''____________________________________________Machine Learning_________________________________________________'''
+    def __init__(self, risk_free = 0.01):
+        self.risk_free = risk_free
 
-###black-litterman
-    #'''#___________________________________________________________________________________________________________'''
-    #____________________________________________Machine Learning_________________________________________________#
+    def black_litterman(self, market_cap, historical_observation, P_sub, Q_sub, tau = 0.05, obs_period = 12):
+        print ("The observation and prediction shall be at least in monthly basis")
+        average_risk_free = self.risk_free/obs_period
+        hist_mean = historical_observation[0] - average_risk_free
+        hist_cov = historical_observation[1]
+        num_asset = market_cap.shape[0]
+        weight = market_cap/np.sum(market_cap)
+
+        def BL_model(tau, P_sub, Q_sub):
+            delta = weight.T.dot(hist_mean)/(np.dot(weight.T.dot(hist_cov), weight))
+            mu_obj = delta*hist_cov.dot(weight)
+            Q_obj = tau*hist_cov
+            if ((P_sub == 0).sum() == P_sub.size).astype(np.int) == 1:
+                mu_new = mu_obj
+                cov_new = hist_cov + Q_obj
+            else:
+                omiga = np.dot(P_sub.dot(tau*hist_cov), P_sub.T)
+                Omi = np.diag(np.diag(omiga))
+                term1 = hist_cov.dot(P_sub.T)
+                term2 = np.dot((P_sub*tau).dot(hist_cov), P_sub.T) + Omi
+                term3 = Q_sub - P_sub.dot(mu_obj)
+                mu_new = mu_obj + tau*np.dot(term1.dot(np.linalg.inv(term2)), term3)
+                term4 = np.linalg.inv(tau*hist_cov) + np.dot(P_sub.T.dot(np.linalg.inv(Omi)), P_sub)
+                cov_new = hist_cov + np.linalg.inv(term4)
+            return mu_new, cov_new
+
+        excessive_mu, cov_new = BL_model(tau, P_sub, Q_sub)
+        mu_new = excessive_mu + average_risk_free
+
+        return excessive_mu, mu_new, cov_new
+
+
+
+
+
 '''
-
-    def __init__(self):
-
-    def black_litterman(self):
-
-
 class option_price:
 
 
