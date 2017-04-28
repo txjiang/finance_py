@@ -3,6 +3,7 @@ import numpy as np
 import scipy.optimize as spo
 import matplotlib.pyplot as plt
 import urllib.request
+#import urllib
 import time
 import os
 import csv
@@ -16,34 +17,25 @@ class finance_basic_info:
         self.risk_free = risk_free
 
     # checked
-    def pullData(self, length='2y'):
+    def pullData(self, length=2):
+        current_date = time.strftime("%d/%m/%Y")
+        current_day = current_date[:2]
+        current_mon = current_date[3:5]
+        current_year = int(current_date[6:])
+        back_year = str(current_year - length)
+        #print (back_year)
+
         for stock in self.company_list:
             fileLine = stock + '.csv'
-            urltovisit = 'http://chartapi.finance.yahoo.com/instrument/1.0/' + stock + '/chartdata;type=quote;range=' + length +'/csv'
-            with urllib.request.urlopen(urltovisit) as f:
-                sourceCode = f.read().decode('utf-8')
-            splitSource = sourceCode.split('\n')
-
+            urltovisit = 'http://ichart.finance.yahoo.com/table.csv?s=' + stock + '&a=' + current_mon + \
+                                        '&b=' + current_day + '&c=' + back_year + '&d=' + current_mon + '&e=' + current_day + \
+                                        '&f=' + str(current_year) + '&g=d&ignore=.csv'
             try:
                 os.remove(fileLine)
             except OSError:
                 pass
 
-            for eachLine in splitSource:
-                splitLine = eachLine.split(',')  # <---(here ',' instead of '.')
-                if len(splitLine) == 6:  # <----( here, 6 instead of 5 )
-                    if 'values' not in eachLine:
-                        saveFile = open(fileLine, 'a')
-                        linetoWrite = eachLine + '\n'
-                        saveFile.write(linetoWrite)
-
-            with open(stock + '.csv', newline='') as f:
-                r = csv.reader(f)
-                data = [line for line in r]
-            with open(stock + '.csv', 'w', newline='') as f:
-                w = csv.writer(f)
-                w.writerow(["Date", "Open", "High", "Low", "Close", "Volume"])
-                w.writerows(data)
+            urllib.request.urlretrieve(urltovisit, fileLine)
 
             print('Pulled', stock)
             print('...')
@@ -53,7 +45,7 @@ class finance_basic_info:
     def read_data(self, filename):
 
         yahoo_finance = pd.read_csv(filename, index_col="Date",
-                                          parse_dates=True, usecols=['Date', 'Close'],
+                                          parse_dates=True, usecols=['Date', 'Adj Close'],
                                           na_values=['nan'])
         return yahoo_finance
 
@@ -67,7 +59,7 @@ class finance_basic_info:
 
         for item in company_list:
             temp_dataframe = self.read_data(item)
-            temp_dataframe = temp_dataframe.rename(columns={'Close': item[:-4]})
+            temp_dataframe = temp_dataframe.rename(columns={'Adj Close': item[:-4]})
             df1 = df1.join(temp_dataframe, how='inner')
         df1.fillna(method='ffill', inplace=True)
         df1.fillna(method='bfill', inplace=True)
