@@ -51,7 +51,7 @@ class finance_basic_info:
         return yahoo_finance
 
     # get_data checked
-    def get_data(self, start_date, end_date, norm_plot = False):
+    def get_data(self, start_date, end_date, benckmark = False, norm_plot = False):
         date_list = pd.date_range(start_date, end_date)
         df1 = pd.DataFrame(index=date_list)
         company_list = []
@@ -66,6 +66,8 @@ class finance_basic_info:
         df1.fillna(method='bfill', inplace=True)
         row_data = df1
         row_data = row_data.iloc[::-1]
+        if benckmark is False:
+            row_data = row_data.drop('SPY', axis=1)
         if norm_plot is True:
             plot_data = row_data
             plot_data = plot_data/plot_data.ix[0,:]
@@ -276,10 +278,10 @@ class portfolio_optimizer:
         def obj_fun(x):
             #print (np.dot(local_Q,x))
             term1 = x*local_Q.dot(x)
-            term1 = term1.reshape(5,1)
+            term1 = term1.reshape(num_asset,1)
             term1 = numpy.matlib.repmat(term1, 1, num_asset)
             term2 = x*local_Q.dot(x)
-            term2 = term2.reshape(1,5)
+            term2 = term2.reshape(1,num_asset)
             term2 = numpy.matlib.repmat(term2, num_asset, 1)
             f = np.sum(np.sum(np.power((term1 - term2), 2)))
             return f
