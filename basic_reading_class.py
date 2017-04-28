@@ -3,10 +3,9 @@ import numpy as np
 import scipy.optimize as spo
 import matplotlib.pyplot as plt
 import urllib.request
-#import urllib
+from scipy import stats
 import time
 import os
-import csv
 import numpy.matlib
 
 class finance_basic_info:
@@ -15,6 +14,8 @@ class finance_basic_info:
     def __init__(self, company_list, risk_free= 1/100):
         self.company_list = company_list
         self.risk_free = risk_free
+        if 'SPY' not in self.company_list:
+            self.company_list.append('SPY')
 
     # checked
     def pullData(self, length=2):
@@ -64,6 +65,7 @@ class finance_basic_info:
         df1.fillna(method='ffill', inplace=True)
         df1.fillna(method='bfill', inplace=True)
         row_data = df1
+        row_data = row_data.iloc[::-1]
         if norm_plot is True:
             plot_data = row_data
             plot_data = plot_data/plot_data.ix[0,:]
@@ -93,6 +95,26 @@ class finance_basic_info:
         kurtret = dailyret.kurtosis()
         covret = dailyret.cov()
         return dailyret, meanret, stdret, covret, kurtret, sharperatio
+
+    def tech_indicator(self, dataframe, n_day = 5):
+        rolling_stats = self.rolling_stats(dataframe=dataframe, window=n_day)
+        momentum = dataframe.copy()
+        momentum [n_day:] = (dataframe[n_day:]/dataframe[:-n_day].values) - 1
+        momentum.ix[0:n_day] = np.nan
+        simple_moving_avg = dataframe.copy()
+        simple_moving_avg [n_day-1:] = (dataframe[n_day-1:]/rolling_stats[0][n_day-1:].values) - 1
+        simple_moving_avg[0:n_day-1] = np.nan
+        #print(simple_moving_avg)
+        bband = dataframe.copy()
+        bband[n_day-1:] = (dataframe[n_day-1:].values - rolling_stats[0][n_day-1:].values)/(2*rolling_stats[1][n_day-1:].values)
+        bband[0:n_day-1] = np.nan
+        #print (bband)
+        #normalized:
+        momentum = (momentum - momentum.mean())/momentum.std()
+        simple_moving_avg = (simple_moving_avg - simple_moving_avg.mean())/simple_moving_avg.std()
+        bband = (bband - bband.mean())/bband.std()
+        return momentum, simple_moving_avg, bband
+
 
 class portfolio_optimizer:
     '''__________________________________________________________________________________________________________'''
@@ -338,6 +360,20 @@ class price_predictor_adjuster:
         mu_new = excessive_mu + average_risk_free
 
         return excessive_mu, mu_new, cov_new
+
+    def CAPM(self, market_ret, asset_ret, asset_weigth):
+        num_asset = asset_weigth.shape[0]
+        asset_alpha= []
+        asset_beta = []
+        for item in range(num_asset):
+            res = stats.linregress(market_ret, asset_ret[:, item])
+            beta = res[0]
+            alpha = res[1]
+            asset_alpha.append(alpha)
+            asset_beta.append(beta)
+        port_beta = np.array(asset_beta).dot(asset_weigth)
+        port_alpha = np.array(asset_alpha).dot(asset_weigth)
+        return port_alpha, port_beta
 
 
 
