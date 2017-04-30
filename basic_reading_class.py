@@ -98,7 +98,7 @@ class finance_basic_info:
         covret = dailyret.cov()
         return dailyret, meanret, stdret, covret, kurtret, sharperatio
 
-    def tech_indicator(self, dataframe, n_day = 5):
+    def tech_indicator(self, dataframe, n_day = 5, skip_nan = True):
         rolling_stats = self.rolling_stats(dataframe=dataframe, window=n_day)
         momentum = dataframe.copy()
         momentum [n_day:] = (dataframe[n_day:]/dataframe[:-n_day].values) - 1
@@ -115,7 +115,22 @@ class finance_basic_info:
         momentum = (momentum - momentum.mean())/momentum.std()
         simple_moving_avg = (simple_moving_avg - simple_moving_avg.mean())/simple_moving_avg.std()
         bband = (bband - bband.mean())/bband.std()
-        return momentum, simple_moving_avg, bband
+        temp_1 = pd.Series(momentum, name='Momentum')
+        temp_2 = pd.Series(simple_moving_avg, name='Simple Moving Average')
+        temp_3 = pd.Series(bband, name='B Band')
+        #print (temp_1.to_frame())
+        #print (temp_2.to_frame())
+        #print (temp_3.to_frame())
+        res_table = temp_1.to_frame().join(temp_2.to_frame())
+        res_table = res_table.join(temp_3.to_frame())
+        if skip_nan == True:
+            momentum = momentum.ix[n_day:]
+            simple_moving_avg = simple_moving_avg.ix[n_day-1:]
+            bband = bband.ix[n_day-1:]
+            res_table = res_table.iloc[n_day:]
+        else:
+            pass
+        return momentum, simple_moving_avg, bband, res_table
 
 class portfolio_optimizer:
     '''__________________________________________________________________________________________________________'''
@@ -376,33 +391,46 @@ class price_predictor_adjuster:
         port_alpha = np.array(asset_alpha).dot(asset_weigth)
         return port_alpha, port_beta
 
-    def KNN(self, raw_data, predict_data, k = None, day_predication = 5, back_test = True, confident_interval = True):
-        raw_data_y = raw_data.copy()
-        raw_data_x = raw_data.copy()
+    def KNN(self, raw_data_tech, raw_data_price, predict_data, k = None, day_predication = 5):
+        raw_data_y = pd.Series(raw_data_price, name='Adj Close')
+        raw_data_y = raw_data_y.to_frame()
+        raw_data_x = raw_data_tech.copy()
         raw_data_y = raw_data_y.ix[day_predication:, ['Adj Close']]
-        raw_data_x = raw_data_x.drop('Adj Close', axis=1)
         raw_data_x = raw_data_x.iloc[:-day_predication]
-        num_data = raw_data_x.shape[0]
+        #print (raw_data_x)
+        num_data_x = raw_data_x.shape[0]
+        num_data_y = raw_data_y.shape[0]
+        if (num_data_x == num_data_y) is False:
+            print ('The size of x and y is not same')
+        else:
+            pass
         if k is None:
-            k = np.round(np.sqrt(num_data))
+            k = np.round(np.sqrt(num_data_x))
         raw_data_y.reset_index(inplace = True)
-        tag = 'Price After' + day_predication + ' Days'
+        tag = 'Price/RR in Next ' + str(day_predication) + ' Days'
         raw_data_y = raw_data_y.rename(columns={'Adj Close': tag})
+        raw_data_y = raw_data_y.drop('index', axis=1)
         eulerian_dist = np.sum((raw_data_x - predict_data)**2, axis=1)
-        combined_new_data = eulerian_dist.merge(raw_data_y, how='left')
-        combined_new_data.rank()
+        eulerian = pd.Series(eulerian_dist, name='Eulerian Distance')
+        eulerian = eulerian.to_frame()
+        eulerian.reset_index(inplace=True)
+        combined_new_data = eulerian.join(raw_data_y)
+        combined_new_data.sort_values(by='Eulerian Distance', inplace=True)
         combined_new_data.reset_index(inplace = True)
+        combined_new_data = combined_new_data.drop('level_0', axis=1)
         k_predict = combined_new_data.ix[:k, [tag]]
-        res = k_predict.mean()
-        if confident_interval == True:
-            #compute the standard derivation
-            predict_std = k_predict.std()
-            ci_95 = stats.t.interval(0.95, len(raw_data_y) - 1, loc=np.mean(raw_data_y), scale=stats.sem(raw_data_y))
-            print (ci_95)
-            print (k_predict.std())
-
+        res_mean = k_predict.mean()
+        res_std = k_predict.std()
+        print (res_mean)
+        return res_mean, res_std
 
 '''
+    def back_test(self):
+        
+    def confident_interval(self):
+        
+
+
 class option_price:
 
 
