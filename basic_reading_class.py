@@ -376,21 +376,30 @@ class price_predictor_adjuster:
         mu_new = excessive_mu + average_risk_free
 
         return excessive_mu, mu_new, cov_new
-
+    #checked
     def CAPM(self, market_ret, asset_ret, asset_weigth):
         num_asset = asset_weigth.shape[0]
         asset_alpha= []
         asset_beta = []
+        try:
+            asset_ret = asset_ret.to_frame()
+        except:
+            pass
+        #print (asset_ret)
         for item in range(num_asset):
-            res = stats.linregress(market_ret, asset_ret[:, item])
+            #print (asset_ret.to_frame().ix[:, item])
+            #print (asset_ret.ix[:, item].values)
+            res = stats.linregress(market_ret.values, asset_ret.ix[:, item].values)
             beta = res[0]
             alpha = res[1]
             asset_alpha.append(alpha)
             asset_beta.append(beta)
+        #print(asset_beta)
+        #print(asset_alpha)
         port_beta = np.array(asset_beta).dot(asset_weigth)
         port_alpha = np.array(asset_alpha).dot(asset_weigth)
-        return port_alpha, port_beta
-
+        return port_alpha, port_beta, asset_beta, asset_alpha
+    #checked
     def KNN(self, raw_data_tech, raw_data_price, predict_data, k = None, day_predication = 5):
         raw_data_y = pd.Series(raw_data_price, name='Adj Close')
         raw_data_y = raw_data_y.to_frame()
@@ -423,6 +432,26 @@ class price_predictor_adjuster:
         res_std = k_predict.std()
         print (res_mean)
         return res_mean, res_std
+'''
+    def Q_learning(self, train_data, num_step):
+        step_size = np.round(train_data.shape[0]/num_step)
+        num_feature = train_data.shape[1]
+
+        def factor_discretize(factor):
+            factor.sort()
+            index_factor = factor.copy()
+            threshold = np.array(1, num_step)
+            for i in range(num_step):
+                threshold[i] = factor[(i + 1) * step_size]
+                if i == 0:
+                    index_factor[index_factor <= threshold[i]] = i
+                else:
+                    index_factor[index_factor <= threshold[i] and index_factor > threshold[i-1]] = i
+            return index_factor
+
+        while True:
+
+     def FCNN(self, data, activation_function = 'tanh'):'''
 
 '''
     def back_test(self):
