@@ -7,8 +7,8 @@ import numpy as np
 company_list = ['AMD', 'BAC', 'GOOG', 'MSFT', 'TXN']
 fbi = finance_basic_info(company_list=company_list)
 #fbi.pullData()
-start_date = '2016-05-02'
-end_date = '2017-01-09'
+start_date = '2016-01-02'
+end_date = '2017-03-09'
 rowdata = fbi.get_data(start_date = start_date, end_date = end_date, benckmark= True, norm_plot=False)
 #print (rowdata)
 daily_ret, mean_ret, std, cov, kurtret, sharperatio = fbi.dailyret_stats(rowdata)
@@ -47,6 +47,6 @@ portf = AMD.to_frame().join(BAC)
 #print (pred_data)
 ppa = price_predictor_adjuster()
 w = np.array([0.5, 0.5])
-res = ppa.CAPM(market_ret=SPY, asset_ret=portf, asset_weigth=w)
+res = ppa.CAPM(market_ret=SPY, asset_ret=portf, asset_weigth=w, plot=True)
 #res = ppa.KNN(raw_data_tech=tech, raw_data_price=AMD, predict_data=pred_data, day_predication=2)
 print(res)

@@ -377,7 +377,7 @@ class price_predictor_adjuster:
 
         return excessive_mu, mu_new, cov_new
     #checked
-    def CAPM(self, market_ret, asset_ret, asset_weigth):
+    def CAPM(self, market_ret, asset_ret, asset_weigth, plot = False):
         num_asset = asset_weigth.shape[0]
         asset_alpha= []
         asset_beta = []
@@ -390,14 +390,20 @@ class price_predictor_adjuster:
             #print (asset_ret.to_frame().ix[:, item])
             #print (asset_ret.ix[:, item].values)
             res = stats.linregress(market_ret.values, asset_ret.ix[:, item].values)
-            beta = res[0]
-            alpha = res[1]
+            beta = res[1]
+            alpha = res[0]
             asset_alpha.append(alpha)
             asset_beta.append(beta)
         #print(asset_beta)
         #print(asset_alpha)
         port_beta = np.array(asset_beta).dot(asset_weigth)
         port_alpha = np.array(asset_alpha).dot(asset_weigth)
+        if plot is True:
+            plt.figure()
+            plt.scatter(market_ret, asset_ret.dot(asset_weigth))
+            plt.plot(market_ret, port_alpha*market_ret+port_beta)
+            plt.title('CAPM Model, SPY rr vs Portfolio rr')
+            plt.show()
         return port_alpha, port_beta, asset_beta, asset_alpha
     #checked
     def KNN(self, raw_data_tech, raw_data_price, predict_data, k = None, day_predication = 5):
@@ -432,10 +438,12 @@ class price_predictor_adjuster:
         res_std = k_predict.std()
         print (res_mean)
         return res_mean, res_std
-'''
-    def Q_learning(self, train_data, num_step):
+
+    def Q_learning(self, train_data, num_step, epsilon, learning_rate):
         step_size = np.round(train_data.shape[0]/num_step)
         num_feature = train_data.shape[1]
+        actions = ["buy", "hold", "sell"]
+        q_table = pd.DataFrame(columns=actions)
 
         def factor_discretize(factor):
             factor.sort()
@@ -448,12 +456,47 @@ class price_predictor_adjuster:
                 else:
                     index_factor[index_factor <= threshold[i] and index_factor > threshold[i-1]] = i
             return index_factor
+        
+        def state_creator(data):
+            factor_matrix = np.array([data.shape[0], data.shape[1]])
+            for i in range(data.shape[1]):
+                factor_i = data.ix[:, i]
+                index_factor_i = factor_discretize(factor_i)
+                factor_matrix[:,i] = index_factor_i
+            return factor_matrix
+        
+        def env(factor_matrix, observation):
+            for i in range(num_feature):
 
-        while True:
 
-     def FCNN(self, data, activation_function = 'tanh'):'''
+        def check_state_exist(observation):
+            if observation not in q_table.index:
+                q_table = q_table.append(
+                    pd.Series([0]*len(actions),
+                              index=q_table.columns,
+                              name = observation
+                    )
+                )
 
-'''
+        def choose_action(observation):
+            check_state_exist(observation)
+            if np.random.uniform()<epsilon:
+                state_action = q_table.ix[observation, :]
+                state_action = state_action.reindex(np.random.permutation(state_action.index))
+                action = state_action.argmax()
+            else:
+                action = np.random.choice(actions)
+            return action
+
+
+
+
+
+'''         
+
+    def FCNN(self, data, activation_function = 'tanh'):
+
+
     def back_test(self):
         
     def confident_interval(self):
